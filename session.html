@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Daily Session Content — TCS NQT 2027 C++ Coding OS</title>
+  <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+  <header class="top-header">
+    <div class="header-inner">
+      <div class="brand-block">
+        <span class="brand-badge">C++17 OS</span>
+        <div>
+          <div class="brand-title">TCS NQT 2027 — C++ Coding OS</div>
+          <div class="brand-subtitle">17 NOV 2026 — 31 DEC 2026 • 45 DAYS • 225 QUESTIONS</div>
+        </div>
+      </div>
+      <nav class="nav-links">
+        <a href="index.html" class="nav-btn ">Dashboard</a>
+        <a href="sessions.html" class="nav-btn ">45 Daily Sessions</a>
+        <a href="session.html?date=2026-11-17" class="nav-btn active">Session Workspace</a>
+        <a href="theory/input-output.html" class="nav-btn ">Input/Output Mastery</a>
+        <a href="theory/index.html" class="nav-btn ">Theory Library</a>
+        <a href="progress.html" class="nav-btn ">Progress & Backup</a>
+        <button type="button" class="btn-jump-today" onclick="jumpToTodaySession()">[ JUMP TO TODAY ]</button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="main-container">
+    
+  <div id="session-workspace-top" class="panel-card">
+    <div class="panel-header">
+      <div>
+        <div style="display:flex;align-items:center;gap:0.6rem;flex-wrap:wrap;margin-bottom:0.3rem;">
+          <span class="badge-phase" id="session-view-title">Session 1 — 17 Nov 2026</span>
+          <span class="cal-day-status badge-not-started" id="session-view-status">Not Started</span>
+        </div>
+        <h2 class="panel-title" id="session-view-focus">Today's Coding Focus</h2>
+        <div class="panel-subtitle" id="session-view-pdf" style="font-family:var(--font-mono);margin-top:0.2rem;">Primary PDF Reference</div>
+      </div>
+      <div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;">
+        <button type="button" class="btn" onclick="stepSessionDay(-1)">← Prev Day</button>
+        <select id="session-date-selector" class="select-field" style="width:auto;max-width:260px;" onchange="handleSessionSelectorChange(this)"></select>
+        <button type="button" class="btn" onclick="stepSessionDay(1)">Next Day →</button>
+      </div>
+    </div>
+
+    <!-- Daily Question Generator & JSON Importer Bar -->
+    <div style="display:flex;gap:0.65rem;flex-wrap:wrap;align-items:center;">
+      <button type="button" class="btn btn-primary" onclick="copyTodayGptPrompt()">[ COPY TODAY'S GPT PROMPT ]</button>
+      <button type="button" class="btn" onclick="toggleGptPromptDrawer()">Preview GPT Prompt</button>
+      <button type="button" class="btn btn-success" onclick="togglePasteJsonDrawer()">[ PASTE GPT SESSION JSON ]</button>
+      <button type="button" class="btn" onclick="loadDemoQuestionsIntoSession()">Load Sample PDF Questions (5 Qs)</button>
+      <button type="button" class="btn btn-danger" onclick="clearCurrentSessionQuestions()">Reset Slots</button>
+    </div>
+
+    <!-- Collapsible GPT Prompt Preview Window -->
+    <div id="gpt-prompt-drawer" class="collapsible-drawer" style="margin-top:1rem;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem;flex-wrap:wrap;gap:0.5rem;">
+        <strong style="font-size:0.9rem;color:var(--accent-blue);">Personalized GPT Daily Question Generator Prompt</strong>
+        <button type="button" class="btn btn-primary" onclick="copyTodayGptPrompt()">[ COPY PROMPT ]</button>
+      </div>
+      <textarea id="gpt-prompt-preview-box" class="textarea-field mono" rows="12" readonly></textarea>
+    </div>
+
+    <!-- Collapsible Paste GPT Session JSON Drawer -->
+    <div id="gpt-json-paste-drawer" class="collapsible-drawer" style="margin-top:1rem;">
+      <div style="margin-bottom:0.5rem;">
+        <strong style="font-size:0.9rem;color:#047857;">Paste GPT Session JSON (Validates Exactly 5 Problems)</strong>
+        <p style="font-size:0.8rem;color:var(--text-muted);">Paste the JSON output from GPT below. If the JSON is invalid or does not contain 5 problems, an error will be shown without deleting your current session.</p>
+      </div>
+      <div id="gpt-json-error-banner" style="display:none;background:var(--status-rose-soft);border:1px solid var(--status-rose);color:#be123c;padding:0.65rem;border-radius:6px;margin-bottom:0.65rem;font-size:0.84rem;"></div>
+      <textarea id="gpt-json-paste-input" class="textarea-field mono" rows="10" placeholder='Paste GPT JSON here: { "date": "2026-11-17", "day": 1, "problems": [ ... 5 problems ... ] }'></textarea>
+      <div style="margin-top:0.6rem;display:flex;gap:0.6rem;">
+        <button type="button" class="btn btn-primary" onclick="submitPastedGptJson()">Validate & Populate 5 Questions</button>
+        <button type="button" class="btn" onclick="togglePasteJsonDrawer()">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5 Coding Questions Container -->
+  <div id="session-questions-container"></div>
+
+  <!-- Input/Output Mastery Daily Challenge -->
+  <div class="panel-card">
+    <div class="panel-header">
+      <div>
+        <div class="panel-title">5. Daily Input / Output Parsing Challenge</div>
+        <div class="panel-subtitle" id="session-io-title">From How to take Input.pdf</div>
+      </div>
+      <label class="checklist-item" style="cursor:pointer;">
+        <input type="checkbox" id="session-io-done-check" onchange="autoSaveSessionNotes()">
+        <strong>Mark Input/Output Drill Completed</strong>
+      </label>
+    </div>
+    <p id="session-io-prompt" style="font-size:0.9rem;color:var(--text-secondary);margin-bottom:0.75rem;"></p>
+    <div class="two-col-grid" style="margin-bottom:0.75rem;">
+      <div style="background:var(--bg-canvas);padding:0.75rem;border-radius:6px;border:1px solid var(--border-subtle);">
+        <div style="font-family:var(--font-mono);font-size:0.75rem;color:var(--accent-blue);">RAW JUDGE INPUT STREAM</div>
+        <pre id="session-io-sample" style="font-family:var(--font-mono);font-size:0.84rem;margin-top:0.3rem;white-space:pre-wrap;"></pre>
+      </div>
+      <div style="background:var(--bg-canvas);padding:0.75rem;border-radius:6px;border:1px solid var(--border-subtle);">
+        <div style="font-family:var(--font-mono);font-size:0.75rem;color:var(--status-green);">EXPECTED PARSED OUTPUT</div>
+        <pre id="session-io-expected" style="font-family:var(--font-mono);font-size:0.84rem;margin-top:0.3rem;white-space:pre-wrap;color:#047857;"></pre>
+      </div>
+    </div>
+    <div class="code-wrapper">
+      <div class="code-header">
+        <span>Reference Portable C++14/17 Input Parser (How to take Input.pdf)</span>
+        <button type="button" class="btn" style="padding:0.2rem 0.55rem;font-size:0.74rem;" onclick="copyIoChallengeCode()">Copy Parser</button>
+      </div>
+      <pre class="code-block" id="session-io-code"></pre>
+    </div>
+  </div>
+
+  <!-- Edge Case Testing & Personal Notes -->
+  <div class="two-col-grid">
+    <div class="panel-card">
+      <div class="panel-header">
+        <div>
+          <div class="panel-title">6. Edge Case Testing Checklist</div>
+          <div class="panel-subtitle">Verify your C++ solutions against strict judge traps</div>
+        </div>
+      </div>
+      <label class="checklist-item"><input type="checkbox" id="ec-check-emptyOrSingle" onchange="autoSaveSessionNotes()"> Tested Empty / Single-element input (N = 0 or N = 1)</label>
+      <label class="checklist-item"><input type="checkbox" id="ec-check-negativeValues" onchange="autoSaveSessionNotes()"> Tested Negative values & zero elements</label>
+      <label class="checklist-item"><input type="checkbox" id="ec-check-overflow64Bit" onchange="autoSaveSessionNotes()"> Verified 64-bit <code>long long</code> for sums/products/factorials</label>
+      <label class="checklist-item"><input type="checkbox" id="ec-check-whitespaceDelimiters" onchange="autoSaveSessionNotes()"> Tested leftover newline (<code>cin &gt;&gt; ws</code> / <code>cin.ignore()</code>) & trailing spaces</label>
+      <label class="checklist-item"><input type="checkbox" id="ec-check-duplicates" onchange="autoSaveSessionNotes()"> Tested all-equal / duplicate elements</label>
+      <label class="checklist-item"><input type="checkbox" id="ec-check-boundaryLimits" onchange="autoSaveSessionNotes()"> Checked exact output case, precision & zero extra prompt text</label>
+      <div style="margin-top:0.75rem;">
+        <label for="session-custom-edge-cases" style="font-size:0.8rem;color:var(--text-muted);display:block;margin-bottom:0.25rem;">Custom Edge Cases Tested Today:</label>
+        <textarea id="session-custom-edge-cases" class="textarea-field mono" rows="3" placeholder="e.g., [2,2,2,3,1,2] wrap-around duplicates..." oninput="autoSaveSessionNotes()"></textarea>
+      </div>
+    </div>
+
+    <div class="panel-card">
+      <div class="panel-header">
+        <div>
+          <div class="panel-title">7. Personal Notes & Weak Areas</div>
+          <div class="panel-subtitle" id="autosave-indicator">Changes save automatically to localStorage</div>
+        </div>
+      </div>
+      <div style="margin-bottom:0.85rem;">
+        <label for="session-personal-notes" style="font-size:0.82rem;color:var(--text-secondary);display:block;margin-bottom:0.25rem;">Today's Session Notes & Takeaways:</label>
+        <textarea id="session-personal-notes" class="textarea-field" rows="5" placeholder="Record C++ tricks, mistakes caught, or time taken..." oninput="autoSaveSessionNotes()"></textarea>
+      </div>
+      <div>
+        <label for="session-weak-areas-input" style="font-size:0.82rem;color:var(--text-secondary);display:block;margin-bottom:0.25rem;">My Recorded Weak Areas (Automatically included in [ COPY TODAY'S GPT PROMPT ]):</label>
+        <textarea id="session-weak-areas-input" class="textarea-field" rows="3" placeholder="e.g., 2D string matrix parsing, sliding window swaps, custom comparator sorting..." oninput="autoSaveSessionNotes()"></textarea>
+      </div>
+    </div>
+  </div>
+
+  </main>
+
+  <div id="toast-container" class="toast-container"></div>
+
+  <footer class="footer-bar">
+    TCS NQT 2027 — C++ Coding Preparation OS • HTML5 + CSS3 + Vanilla JS • Offline-First localStorage Persistence
+  </footer>
+
+  <script src="assets/js/theory-data.js"></script>
+  <script src="assets/js/storage.js"></script>
+  <script src="assets/js/calendar.js"></script>
+  <script src="assets/js/prompt-generator.js"></script>
+  <script src="assets/js/session-manager.js"></script>
+  <script src="assets/js/app.js"></script>
+</body>
+</html>

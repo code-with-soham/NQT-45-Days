@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard — TCS NQT 2027 C++ Coding OS</title>
+  <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+  <header class="top-header">
+    <div class="header-inner">
+      <div class="brand-block">
+        <span class="brand-badge">C++17 OS</span>
+        <div>
+          <div class="brand-title">TCS NQT 2027 — C++ Coding OS</div>
+          <div class="brand-subtitle">17 NOV 2026 — 31 DEC 2026 • 45 DAYS • 225 QUESTIONS</div>
+        </div>
+      </div>
+      <nav class="nav-links">
+        <a href="index.html" class="nav-btn active">Dashboard</a>
+        <a href="sessions.html" class="nav-btn ">45 Daily Sessions</a>
+        <a href="session.html?date=2026-11-17" class="nav-btn ">Session Workspace</a>
+        <a href="theory/input-output.html" class="nav-btn ">Input/Output Mastery</a>
+        <a href="theory/index.html" class="nav-btn ">Theory Library</a>
+        <a href="progress.html" class="nav-btn ">Progress & Backup</a>
+        <button type="button" class="btn-jump-today" onclick="jumpToTodaySession()">[ JUMP TO TODAY ]</button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="main-container">
+    
+  <div class="hero-banner">
+    <div>
+      <div class="hero-eyebrow">PERSONAL C++ CODING PREPARATION ENVIRONMENT</div>
+      <h1 class="hero-title">TCS NQT 2027 — C++ CODING PREPARATION</h1>
+      <div class="hero-period">Preparation Period: <strong>17 NOV 2026 — 31 DEC 2026</strong> • 45 Days • 5 Questions/Day • 225 Total Slots</div>
+    </div>
+    <div class="hero-actions">
+      <button type="button" class="btn-jump-today" onclick="jumpToTodaySession()">[ JUMP TO TODAY ]</button>
+    </div>
+  </div>
+
+  <div class="kpi-grid">
+    <div class="kpi-card">
+      <div class="kpi-label">Today's Session</div>
+      <div class="kpi-value" id="stat-today-session">Day 1 (17 Nov 2026)</div>
+      <div class="kpi-sub" id="stat-today-sub">Click [ JUMP TO TODAY ] to start</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Completed Days</div>
+      <div class="kpi-value" id="stat-completed-days">0 / 45</div>
+      <div class="kpi-sub">5/5 solved marks a day Completed</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Questions Solved</div>
+      <div class="kpi-value" id="stat-questions-solved">0 / 225</div>
+      <div class="kpi-sub">Daily Target: 5 C++ Questions</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Remaining Days</div>
+      <div class="kpi-value" id="stat-remaining-days">45 Days</div>
+      <div class="kpi-sub">Window: 17 Nov — 31 Dec 2026</div>
+    </div>
+  </div>
+
+  <div class="panel-card">
+    <div class="panel-header">
+      <div>
+        <div class="panel-title">45-Day Preparation Calendar (17 Nov 2026 — 31 Dec 2026)</div>
+        <div class="panel-subtitle">Click any date card or use the Date Picker to open that day's 5-question C++ session</div>
+      </div>
+      <div class="calendar-controls">
+        <label for="dashboard-date-picker" style="font-size:0.82rem;font-family:var(--font-mono);color:var(--text-secondary);">Choose Date:</label>
+        <input type="date" id="dashboard-date-picker" class="date-picker-input" min="2026-11-17" max="2026-12-31" value="2026-11-17">
+        <button type="button" class="btn btn-primary" onclick="handleDatePickerJump()">Go to Date →</button>
+      </div>
+    </div>
+    <div class="calendar-grid" id="calendar-45-grid"></div>
+  </div>
+
+  <div class="panel-card">
+    <div class="panel-header">
+      <div>
+        <div class="panel-title">4-Phase Preparation Roadmap & Uploaded Source Inventory</div>
+        <div class="panel-subtitle">Strictly grounded in your uploaded PDFs and Excel coding sheets</div>
+      </div>
+    </div>
+    <div class="kpi-grid">
+      <div class="kpi-card">
+        <span class="badge-phase">Phase 1 • 17–23 Nov 2026</span>
+        <div style="font-weight:700;margin:0.4rem 0;">Input/Output Mastery & Fundamentals</div>
+        <div style="font-size:0.83rem;color:var(--text-secondary);">Master <code>getline</code>, <code>stringstream</code>, CSV/bracket arrays, 2D string matrices, and number-based C++ patterns.</div>
+      </div>
+      <div class="kpi-card">
+        <span class="badge-phase">Phase 2 • 24 Nov–07 Dec 2026</span>
+        <div style="font-weight:700;margin:0.4rem 0;">Arrays, Strings & Mixed Formats</div>
+        <div style="font-size:0.83rem;color:var(--text-secondary);">Solve TCS story-based array & string problems (rotations, leaders, sliding window, Bastin no-'9', string rounding).</div>
+      </div>
+      <div class="kpi-card">
+        <span class="badge-phase">Phase 3 • 08–21 Dec 2026</span>
+        <div style="font-weight:700;margin:0.4rem 0;">C++ STL, Recursion & PYQ Packs</div>
+        <div style="font-size:0.83rem;color:var(--text-secondary);">Apply STL containers, custom comparators, monotonic stacks, recursion/DP, and 40 TCS previous-year problems.</div>
+      </div>
+      <div class="kpi-card">
+        <span class="badge-phase">Phase 4 • 22–31 Dec 2026</span>
+        <div style="font-weight:700;margin:0.4rem 0;">Strict Judge Simulation & Revision</div>
+        <div style="font-size:0.83rem;color:var(--text-secondary);">Full timed simulations, hidden boundary traps, 64-bit overflow checks, and weak-area revision.</div>
+      </div>
+    </div>
+  </div>
+
+  </main>
+
+  <div id="toast-container" class="toast-container"></div>
+
+  <footer class="footer-bar">
+    TCS NQT 2027 — C++ Coding Preparation OS • HTML5 + CSS3 + Vanilla JS • Offline-First localStorage Persistence
+  </footer>
+
+  <script src="assets/js/theory-data.js"></script>
+  <script src="assets/js/storage.js"></script>
+  <script src="assets/js/calendar.js"></script>
+  <script src="assets/js/prompt-generator.js"></script>
+  <script src="assets/js/session-manager.js"></script>
+  <script src="assets/js/app.js"></script>
+</body>
+</html>
