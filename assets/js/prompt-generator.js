@@ -75,43 +75,169 @@ window.TCSPromptGenerator = (function() {
     return promptLines.join("\n");
   }
 
-  function parsePastedSession(raw) {
+  /* ------------------------------------------------------------------ */
+  /*  State-aware JSON preprocessor                                      */
+  /*  1. Inside strings: preserves the 8 valid JSON escape sequences     */
+  /*     (\", \\, \/, \b, \f, \n, \r, \t) and \uXXXX, but strips the    */
+  /*     backslash from any INVALID escape (e.g. \< \* \# \' \( )        */
+  /*     that Markdown/GPT copy-paste injects into C++ code.             */
+  /*  2. Outside strings: removes standalone line-continuation           */
+  /*     backslashes (\ followed by optional spaces and a newline).      */
+  /* ------------------------------------------------------------------ */
+  function cleanJsonInput(raw) {
     var text = String(raw || "").trim();
 
-    // Remove optional Markdown code fences
-    text = text
-      .replace(/^```(?:json)?\s*/i, "")
-      .replace(/\s*```$/i, "");
+    /* 1. Remove optional Markdown JSON fences */
+    text = text.replace(/^```(?:json)?\s*/i, "");
+    text = text.replace(/\s*```$/i, "");
 
-    // Remove optional escape wrappers
-    text = text
-      .replace(/^<escape>\s*/i, "")
-      .replace(/\s*<\/escape>$/i, "");
+    /* 2. Remove optional <escape> wrappers */
+    text = text.replace(/^<escape>\s*/i, "");
+    text = text.replace(/\s*<\/escape>$/i, "");
 
-    // Decode HTML entities such as &#x20; and &quot;
+    /* 3. Decode HTML entities (&#x20;  &quot;  &amp;  etc.) */
     var decoder = document.createElement("textarea");
     decoder.innerHTML = text;
-    text = decoder.value.trim();
+    text = decoder.value;
 
-    // Normalize non-breaking spaces (U+00A0) if present
+    /* 4. Normalize non-breaking spaces (U+00A0) */
     text = text.replace(/\u00A0/g, " ");
 
-    // Parse JSON (with automatic fallback for Markdown-copied line-continuation '\' and '\<' or '\*' escapes)
-    var data;
-    try {
-      data = JSON.parse(text);
-    } catch (firstErr) {
-      var sanitized = text
-        .replace(/\\\s*(?=\r?\n|$)/g, "")
-        .replace(/\\(?![/"\\bfnrt]|u[0-9a-fA-F]{4})/g, "");
-      data = JSON.parse(sanitized);
+    /* 5. Character-by-character state-aware scan */
+    var result = "";
+    var insideString = false;
+
+    for (var i = 0; i < text.length; i++) {
+      var ch = text[i];
+
+      /* ============================================================ */
+      /*  INSIDE a JSON string literal                                 */
+      /* ============================================================ */
+      if (insideString) {
+
+        /* Unescaped closing quote → leave string */
+        if (ch === '"') {
+          insideString = false;
+          result += ch;
+          continue;
+        }
+
+        /* Backslash inside string → classify the escape */
+        if (ch === "\\") {
+          var next = (i + 1 < text.length) ? text[i + 1] : "";
+
+          /* Special case: \\" (double-backslash before quote)
+             In JSON, \\" means an escaped backslash followed by a closing quote.
+             However, in LLM/Markdown-escaped C++ code (e.g. cout << \\"YES\\"),
+             it represents an escaped quote.
+             Distinguish: if the quote is immediately followed by a JSON separator
+             (comma or closing brace) followed by a newline or EOF, then this is a
+             legitimate trailing backslash followed by the closing quote.
+             Otherwise, it is an escaped quote inside C++ code → emit \" */
+          if (next === "\\" && i + 2 < text.length && text[i + 2] === '"') {
+            var k = i + 3;
+            while (k < text.length && (text[k] === " " || text[k] === "\t")) {
+              k++;
+            }
+            var nextNonSpace = text[k];
+            if ((nextNonSpace === "," || nextNonSpace === "}") &&
+                (text[k + 1] === "\n" || text[k + 1] === "\r" || k + 1 >= text.length)) {
+              result += "\\\\";
+              i++;
+              continue;
+            } else {
+              result += '\\"';
+              i += 2;
+              continue;
+            }
+          }
+
+          /* 5a. Valid single-character JSON escapes:
+                 \"  \\  \/  \b  \f  \n  \r  \t               */
+          if (next === '"' || next === "\\" || next === "/" ||
+              next === "b" || next === "f"  || next === "n" ||
+              next === "r" || next === "t") {
+            result += ch + next;   /* keep both \ and the letter */
+            i++;                   /* skip the next char */
+            continue;
+          }
+
+          /* 5b. Valid \uXXXX Unicode escape */
+          if (next === "u" &&
+              i + 5 < text.length &&
+              /^[0-9a-fA-F]{4}$/.test(text.substring(i + 2, i + 6))) {
+            result += text.substring(i, i + 6);  /* \uXXXX */
+            i += 5;
+            continue;
+          }
+
+          /* 5c. INVALID escape — Markdown/GPT artefact
+                 e.g.  \<  \*  \#  \(  \)  \'  \!  \[  \]  \|
+                 → drop the backslash, keep only the next char  */
+          if (next !== "") {
+            result += next;
+            i++;
+            continue;
+          }
+
+          /* Backslash at very end of input — just drop it */
+          continue;
+        }
+
+        /* Any other character inside the string — pass through */
+        result += ch;
+        continue;
+      }
+
+      /* ============================================================ */
+      /*  OUTSIDE any JSON string literal                              */
+      /* ============================================================ */
+
+      /* Opening quote → enter string */
+      if (ch === '"') {
+        insideString = true;
+        result += ch;
+        continue;
+      }
+
+      /* Backslash outside a string → check for line-continuation */
+      if (ch === "\\") {
+        var j = i + 1;
+        /* Skip optional horizontal whitespace after the backslash */
+        while (j < text.length && (text[j] === " " || text[j] === "\t")) {
+          j++;
+        }
+        /* \<spaces>\n  → skip the entire run (line-continuation) */
+        if (j < text.length && text[j] === "\n") {
+          i = j;   /* for-loop i++ moves past the \n */
+          continue;
+        }
+        if (j < text.length && text[j] === "\r" &&
+            j + 1 < text.length && text[j + 1] === "\n") {
+          i = j + 1;
+          continue;
+        }
+        /* Not a line-continuation — drop the stray backslash
+           (outside a string it is never valid JSON) */
+        continue;
+      }
+
+      result += ch;
     }
+
+    return result.trim();
+  }
+
+  function parsePastedSession(raw) {
+    var cleaned = cleanJsonInput(raw);
+
+    var data = JSON.parse(cleaned);   /* throws on invalid JSON */
 
     if (Array.isArray(data)) {
       data = { problems: data };
     }
 
-    // Validate exactly five questions
+    /* Validate exactly five questions */
     if (!data || !Array.isArray(data.problems) || data.problems.length !== 5) {
       throw new Error("Session must contain exactly 5 problems.");
     }
@@ -132,14 +258,66 @@ window.TCSPromptGenerator = (function() {
     } catch (err) {
       return {
         ok: false,
-        error: "JSON Import Error (" + err.message + "). Your previously saved session is untouched."
+        error: "JSON Import Error: " + err.message + ". Your previously saved session is untouched."
       };
     }
 
+    /* ---- Validate date & day match the selected session ---- */
+    var state = window.TCSStorage.loadState();
+    var targetSession = state.sessions[targetDate];
+    if (targetSession) {
+      if (data.date && String(data.date) !== targetDate) {
+        return {
+          ok: false,
+          error: "Date Mismatch: JSON contains date \"" + data.date +
+                 "\" but the selected session is \"" + targetDate +
+                 "\". Your previously saved session is untouched."
+        };
+      }
+      if (data.day !== undefined && Number(data.day) !== targetSession.day) {
+        return {
+          ok: false,
+          error: "Day Mismatch: JSON contains day " + data.day +
+                 " but the selected session is Day " + targetSession.day +
+                 ". Your previously saved session is untouched."
+        };
+      }
+    }
+
+    /* ---- Validate every problem has all required properties ---- */
+    var requiredFields = [
+      "title", "difficulty", "statement", "inputFormat", "outputFormat",
+      "constraints", "sampleInput", "sampleOutput", "explanation",
+      "edgeCases", "hint", "solution", "timeComplexity", "spaceComplexity",
+      "sourceReference"
+    ];
+    for (var i = 0; i < data.problems.length; i++) {
+      var p = data.problems[i];
+      if (!p || typeof p !== "object") {
+        return {
+          ok: false,
+          error: "Validation Error: Problem #" + (i + 1) +
+                 " is not a valid object. Your previously saved session is untouched."
+        };
+      }
+      for (var f = 0; f < requiredFields.length; f++) {
+        if (p[requiredFields[f]] === undefined || p[requiredFields[f]] === null) {
+          return {
+            ok: false,
+            error: "Validation Error: Problem #" + (i + 1) +
+                   " is missing required field '" + requiredFields[f] +
+                   "'. Your previously saved session is untouched."
+          };
+        }
+      }
+    }
+
+    /* ---- All validation passed — save to localStorage ---- */
     return window.TCSStorage.saveSessionQuestions(targetDate, data.problems);
   }
 
   return {
+    cleanJsonInput: cleanJsonInput,
     buildDailyGptPrompt: buildDailyGptPrompt,
     parsePastedSession: parsePastedSession,
     parseAndValidateSessionJson: parseAndValidateSessionJson
